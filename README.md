@@ -17,7 +17,7 @@ A Proxmox-based lab for learning Windows Server, Active Directory and Cybersecur
 | Router | Gateway | 192.168.0.1 |
 | John | Proxmox host | 192.168.0.50 |
 | DC01 | Domain controller | 192.168.0.x |
-| honeypot | Honeypot VM admin NIC (DHCP, SSH on port 22222) | 192.168.0.x |
+| honeypot | Honeypot VM admin NIC (DHCP) | assigned by DHCP, not recorded here |
 | honeypot (trap) | Honeypot VM trap NIC on isolated vmbr1 | 10.10.10.10 |
 
 ## Runbooks

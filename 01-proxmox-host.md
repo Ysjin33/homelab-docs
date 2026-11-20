@@ -59,7 +59,7 @@ I run Proxmox VE as a home hypervisor so I can build and break virtual machines 
 | VM ID | Name | OS | Role | IP | Doc |
 |---|---|---|---|---|---|
 | 100 | DC01 | Windows Server | AD DS + DNS (lab.local) | ... | [02-ad-dc01.md](02-ad-dc01.md) |
-| 101 | honeypot | Ubuntu Server 24.04.3 LTS | Honeypot lab (Cowrie + Python honeypots) | 192.168.0.x (admin NIC, DHCP) | [03-honeypot.md](03-honeypot.md) |
+| 101 | honeypot | Ubuntu Server 24.04.3 LTS | Honeypot lab (Cowrie + Python honeypots) | DHCP (admin NIC) | [03-honeypot.md](03-honeypot.md) |
 
 ## 8. Snapshots and backups
 
