@@ -43,6 +43,7 @@ I run Proxmox VE as a home hypervisor so I can build and break virtual machines 
 | Bridge address | 192.168.0.50/24 |
 | Gateway | 192.168.0.1 |
 | VLANs | None |
+| Isolated bridge | vmbr1 (no bridge port, no host IP), created 20-11-2026 for the honeypot lab |
 
 
 ## 6. Storage
@@ -58,13 +59,22 @@ I run Proxmox VE as a home hypervisor so I can build and break virtual machines 
 | VM ID | Name | OS | Role | IP | Doc |
 |---|---|---|---|---|---|
 | 100 | DC01 | Windows Server | AD DS + DNS (lab.local) | ... | [02-ad-dc01.md](02-ad-dc01.md) |
+| 101 | honeypot | Ubuntu Server 24.04.3 LTS | Honeypot lab (Cowrie + Python honeypots) | 192.168.0.x (admin NIC, DHCP) | [03-honeypot.md](03-honeypot.md) |
 
 ## 8. Snapshots and backups
 
-I should probably set it up...
+| VM | Snapshot | Taken | Why |
+|---|---|---|---|
+| 100 DC01 | pre-lockout-policy | 19-11-2026 | Before changing the account lockout policy |
+| 100 DC01 | pre-honeypot-lab | 20-11-2026 | Before starting the honeypot lab (no RAM) |
+| 101 honeypot | clean-base | 20-11-2026 | Hardened base: updated, firewall on, SSH on 22222, Docker installed, trap NIC added (no RAM) |
+
+No scheduled backups yet.
 
 ## Changelog for this page
 
 | Date | Change |
 |---|---|
 | 19-10-2026 | Created page |
+| 20-11-2026 | Added isolated bridge vmbr1; recorded snapshots |
+| 20-11-2026 | Recorded VM 101 snapshot clean-base |
