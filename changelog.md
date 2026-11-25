@@ -2,6 +2,8 @@
 
 | Date | Change |
 |---|---|
+| 26-11-2026 | Created VM 102 (kali) for the honeypot lab. My first ISO was the arm64 build and would not boot on the Intel host, so I replaced it with the amd64 installer. Install not finished yet |
+| 26-11-2026 | Tested a rejected login and fake-shell commands against Cowrie from the VM, copied the log out and confirmed the field names. Event types now seen include cowrie.login.failed and cowrie.command.input. Timestamps are in UTC |
 | 25-11-2026 | Rewrote the honeypot page so it can be followed from scratch: added a status box, design diagram, the Cowrie steps, the login rules, a larger problems table, next steps, safety rules and a glossary. Filled in the README network diagram |
 | 25-11-2026 | Started Cowrie 3.1.8 in Docker on the honeypot VM, published only on the trap address (10.10.10.10:22), read its log with jq, and took snapshot cowrie-running. Problems met: the image has no find, docker export hides volumes, docker logs shows no events, and a client config file made ssh on the VM use port 22222 |
 | 20-11-2026 | This repo is public, so I removed the honeypot's admin IP and login-method details from the docs; admin addresses are kept in my private notes only |

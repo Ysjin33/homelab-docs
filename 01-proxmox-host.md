@@ -60,6 +60,7 @@ I run Proxmox VE as a home hypervisor so I can build and break virtual machines 
 |---|---|---|---|---|---|
 | 100 | DC01 | Windows Server | AD DS + DNS (lab.local) | ... | [02-ad-dc01.md](02-ad-dc01.md) |
 | 101 | honeypot | Ubuntu Server 24.04.3 LTS | Honeypot lab (Cowrie + Python honeypots) | DHCP (admin NIC) | [03-honeypot.md](03-honeypot.md) |
+| 102 | kali | Kali Linux (amd64) | Attacker VM for the honeypot lab (install in progress) | 10.10.10.20 on vmbr1 once installed | [03-honeypot.md](03-honeypot.md) |
 
 ## 8. Snapshots and backups
 
@@ -80,3 +81,4 @@ No scheduled backups yet.
 | 20-11-2026 | Added isolated bridge vmbr1; recorded snapshots |
 | 20-11-2026 | Recorded VM 101 snapshot clean-base |
 | 25-11-2026 | Recorded VM 101 snapshot cowrie-running |
+| 26-11-2026 | Added VM 102 (kali) to the VM table |

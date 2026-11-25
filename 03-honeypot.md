@@ -1,6 +1,6 @@
 # Honeypot Lab
 
-> **Status (25-11-2026): Week 1 of 3 in progress.** The isolated network, the honeypot VM and Cowrie are built and recording. Still to do: the Kali attacker VM, my own Python honeypot, a detection rule and the final write-up. See [section 8](#8-where-this-project-stands-and-whats-next).
+> **Status (26-11-2026): Week 1 of 3 in progress.** The isolated network, the honeypot VM and Cowrie are built and recording, and I've confirmed what Cowrie logs for a rejected login and for fake-shell commands. The Kali attacker VM is created and waiting for its install. Still to do: finish Kali, my own Python honeypot, a detection rule and the final write-up. See [section 8](#8-where-this-project-stands-and-whats-next).
 
 ## 1. Goal
 
@@ -20,7 +20,7 @@ I'm building an isolated honeypot network in the Proxmox lab, attacking it from 
    ├─ VM 101 "honeypot"                          │
    │     ├─ ens18 (vmbr0)  admin NIC ────────────┘
    │     └─ ens19 (vmbr1)  trap NIC 10.10.10.10  <- Cowrie listens here on port 22 (Docker)
-   └─ VM 102 "kali" (planned, not built yet)
+   └─ VM 102 "kali" (created, install in progress)
          └─ vmbr1 only, 10.10.10.20
  vmbr1 = isolated bridge: no physical port and no address on the host,
          so machines on it cannot reach the home LAN or the internet
@@ -46,7 +46,7 @@ One VM runs two different SSH servers on purpose:
 | Honeypot software | Cowrie 3.1.8 (`cowrie/cowrie:latest`) in Docker, container `cowrie`, published only on `10.10.10.10:22` |
 | Installed | docker.io, qemu-guest-agent, ufw, jq, tcpdump, python3-venv |
 | Snapshots | `clean-base` (20-11-2026), `cowrie-running` (25-11-2026) |
-| Kali VM | _TBD_ (planned ID 102, vmbr1 only, 10.10.10.20/24) |
+| Kali VM | ID 102, `kali`, Kali Linux installer (amd64), 2 vCPU, 4 GB RAM, 40 GB disk on local-lvm. Created 26-11-2026 on vmbr0 for the install; install not finished yet. Planned: vmbr1 only, 10.10.10.20/24 |
 
 ## 4. Steps taken
 
@@ -109,6 +109,11 @@ jq -r '[.timestamp, .eventid, .src_ip, .username, .password, .input] | map(. // 
 12. **First test, from the VM itself.** `ssh -p 22 root@10.10.10.10` (the `-p 22` is needed, see problem 11 in section 7), a made-up password, then `exit`. Result and log contents are in section 5.
 13. **Snapshot:** took `cowrie-running` of VM 101.
 
+### Session 4 (26-11-2026): checking the log, then the Kali VM (in progress)
+
+14. **Rejected login and fake-shell commands, from the VM itself.** `ssh -p 22 root@10.10.10.10`. First try: `root` with `123456` (predicted: rejected). Second try: a made-up password (predicted: accepted). Then in the fake shell: `uname -a`, `ls`, `cat /etc/passwd`, `exit`. Both predictions were right. I copied the log out and read it with the commands from step 11. Results are in section 5.
+15. **Kali VM created (VM 102):** 2 vCPU, 4 GB RAM, 40 GB disk, network on `vmbr0` for the install, Kali installer ISO in the CD/DVD drive. My first ISO was the wrong build (arm64), see problem 13. I replaced it with the amd64 installer. The install and the move to the isolated bridge are the next steps (section 8).
+
 ## 5. Verification
 
 ```bash
@@ -131,7 +136,29 @@ ssh-keyscan -p 22222 10.10.10.10 2>/dev/null | ssh-keygen -lf -
 | five short connections, each: `session.connect`, `client.version`, `client.kex`, `session.closed`, with no login | my `ssh-keyscan` probing the port. This is what a scanner looks like in a honeypot log |
 | `session.connect`, `client.version`, `client.kex`, `login.success` (user `root`), `client.size`, `client.var`, `session.params`, `command.input` (`exit`), `log.closed`, `session.closed` | one manual login and logout |
 
-Event names confirmed so far: `cowrie.session.connect`, `cowrie.login.success`, `cowrie.command.input`, `cowrie.session.closed`. Not yet seen: `cowrie.login.failed` (needs a rejected login such as `root` with `123456`).
+**After the rejected-login test** (26-11-2026), counting the event types with `jq -r '.eventid' ~/cowrie.json | sort | uniq -c`:
+
+| Event | Count |
+|---|---|
+| `cowrie.session.connect` | 7 |
+| `cowrie.session.closed` | 7 |
+| `cowrie.client.version` | 7 |
+| `cowrie.client.kex` | 7 |
+| `cowrie.command.input` | 6 |
+| `cowrie.login.success` | 2 |
+| `cowrie.session.params` | 2 |
+| `cowrie.client.size` | 2 |
+| `cowrie.client.var` | 2 |
+| `cowrie.log.closed` | 2 |
+| `cowrie.login.failed` | 1 |
+
+The one `cowrie.login.failed` is `root` with `123456`, as predicted. Each line is JSON with `eventid`, `session`, `protocol`, `src_ip`, `src_port`, `dst_ip`, `dst_port`, `timestamp` and `message`, plus `username` and `password` on login events. Things worth knowing:
+
+- `timestamp` is in UTC (it ends in `Z`), so convert it to local time when making charts.
+- `dst_ip` and `dst_port` show the container's own address and port (2222), not the trap address.
+- `src_ip` is still `10.10.10.10` because I tested from the VM itself. Docker's port forwarding should keep the real source address for a connection from Kali, but I haven't checked yet. That is the first test once Kali is on `vmbr1`.
+
+Inside the fake shell, the prompt showed the hostname `svr04`, `uname -a` reported a Debian 6.1 kernel, and `cat /etc/passwd` listed a stock set of users including one called `phil`. That is Cowrie's built-in fake system, not the real VM, which runs Ubuntu.
 
 Cowrie's configured fake banner is `SSH-2.0-OpenSSH_9.2p1 Debian-2+deb12u3` (from its bundled config; I have not yet seen it on the wire).
 
@@ -141,7 +168,7 @@ Cowrie's configured fake banner is `SSH-2.0-OpenSSH_9.2p1 Debian-2+deb12u3` (fro
 - The admin address comes from DHCP. In production it would be a fixed reservation or a static address.
 - The trap NIC and the admin NIC share one VM. In production the honeypot would sit on its own VLAN, with no path to management systems.
 - Real internet exposure would bring real attackers, so it would need stricter isolation, monitoring and a legal check.
-- Skilled attackers can recognise honeypots, for example by their behaviour or default settings.
+- Skilled attackers can recognise honeypots, for example by their behaviour or default settings. Cowrie's stock fake system (the hostname `svr04` and a user called `phil`) is one example. Changing it is a stretch goal.
 
 ## 7. Problems met
 
@@ -159,6 +186,7 @@ Cowrie's configured fake banner is `SSH-2.0-OpenSSH_9.2p1 Debian-2+deb12u3` (fro
 | 10 | `docker logs cowrie` showed no attacks | This Cowrie records events only in `cowrie.json` (`jsonlog` on, `textlog` off) | Read the JSON file with `jq` (step 11) |
 | 11 | `ssh root@10.10.10.10` from the VM reached the real SSH server on 22222, not Cowrie: wrong banner, root refused, nothing logged | `/etc/ssh/ssh_config.d/10-port.conf` is a **client** config (`ssh_config.d`; the server's folder is `sshd_config.d`), so every `ssh` run on the VM defaults to port 22222 | Found with `ssh -v` ("Reading configuration data", "Connecting to ... port"). Use `ssh -p 22` for Cowrie tests from the VM. The file is still there and should be moved aside |
 | 12 | I removed the container although its output was correct | Misread a correct result as a problem | Read the output first. `docker rm` also leaves a container's anonymous volumes behind, so an orphan volume with an old empty log remains; list with `sudo docker volume ls` |
+| 13 | Kali VM would not boot the installer: "Boot failed: Could not read from CDROM (code 0009)", then it tried a network boot | I had downloaded the `arm64` Kali installer. The Proxmox host is an Intel machine, so it can't boot an ARM image. The download page can suggest the ARM build when browsing from an Apple Silicon Mac. The boot menu showed the disc as "Kali Linux arm64" | Removed that ISO and downloaded the `amd64` installer (the filename contains `amd64`), then selected it under VM 102, Hardware, CD/DVD Drive. Stop and start the VM afterwards so it picks up the change. Check the architecture in the filename before downloading |
 
 ## 8. Where this project stands and what's next
 
@@ -167,14 +195,15 @@ Cowrie's configured fake banner is `SSH-2.0-OpenSSH_9.2p1 Debian-2+deb12u3` (fro
 - [x] Honeypot VM 101, hardened, real SSH on 22222, trap NIC on `vmbr1`, snapshot `clean-base`
 - [x] Cowrie running on `10.10.10.10:22`, writing `cowrie.json`, snapshot `cowrie-running`
 - [x] First login captured and read with `jq`
+- [x] Rejected login and fake-shell commands tested, log fields confirmed (26-11-2026)
+- [x] Kali VM 102 created with the amd64 installer attached (26-11-2026)
 
 **Next (in order)**
 1. Optional tidy: move `/etc/ssh/ssh_config.d/10-port.conf` aside; remove the leftover Docker volume from the first container (`sudo docker volume ls`, then remove it by name).
-2. Optional: test a rejected login (`root` with `123456`) and a few fake-shell commands, then re-copy the log, to confirm the `cowrie.login.failed` and `cowrie.command.input` events.
-3. Week 1, Session 4: download the Kali installer ISO (amd64, check the checksum), create VM 102, install it on `vmbr0`, update it, then switch its network card to `vmbr1` only and give it 10.10.10.20/24. Prove isolation: `ping 192.168.0.1` must **fail** and `ping 10.10.10.10` must work. Snapshot Kali (`clean-isolated`) and the honeypot (`pre-attack-tests`).
-4. Attack the honeypot from Kali (`nmap`, then `hydra` with a wordlist that includes passwords Cowrie rejects, such as `root` and `123456`. With the default rules `hydra` stops at the first accepted password, so otherwise only one failure is logged and a brute-force rule would never fire).
-5. Week 1, Session 5: read the evidence with `jq`.
-6. Week 2: my own Python honeypot (SSH and HTTP), logging in the same JSON style. Week 3: detection rule, charts, MITRE ATT&CK mapping, attack day with a packet capture, and the final write-up.
+2. Week 1, Session 4 (in progress): VM 102 is created and the `amd64` installer is downloaded. Install Kali on `vmbr0`, update it, then switch its network card to `vmbr1` only and give it 10.10.10.20/24. Prove isolation: `ping 192.168.0.1` must **fail** and `ping 10.10.10.10` must work. Snapshot Kali (`clean-isolated`) and the honeypot (`pre-attack-tests`). Then make one login attempt from Kali and check that the log shows `10.10.10.20` as `src_ip`.
+3. Attack the honeypot from Kali (`nmap`, then `hydra` with a wordlist that includes passwords Cowrie rejects, such as `root` and `123456`. With the default rules `hydra` stops at the first accepted password, so otherwise only one failure is logged and a brute-force rule would never fire).
+4. Week 1, Session 5: read the evidence with `jq`.
+5. Week 2: my own Python honeypot (SSH and HTTP), logging in the same JSON style. Week 3: detection rule, charts, MITRE ATT&CK mapping, attack day with a packet capture, and the final write-up.
 
 ## 9. Safety rules for this lab
 
