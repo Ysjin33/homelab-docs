@@ -68,6 +68,7 @@ I run Proxmox VE as a home hypervisor so I can build and break virtual machines 
 | 100 DC01 | pre-lockout-policy | 19-11-2026 | Before changing the account lockout policy |
 | 100 DC01 | pre-honeypot-lab | 20-11-2026 | Before starting the honeypot lab (no RAM) |
 | 101 honeypot | clean-base | 20-11-2026 | Hardened base: updated, firewall on, SSH on 22222, Docker installed, trap NIC added (no RAM) |
+| 101 honeypot | cowrie-running | 25-11-2026 | Cowrie honeypot running in Docker on the trap NIC and logging |
 
 No scheduled backups yet.
 
@@ -78,3 +79,4 @@ No scheduled backups yet.
 | 19-10-2026 | Created page |
 | 20-11-2026 | Added isolated bridge vmbr1; recorded snapshots |
 | 20-11-2026 | Recorded VM 101 snapshot clean-base |
+| 25-11-2026 | Recorded VM 101 snapshot cowrie-running |
